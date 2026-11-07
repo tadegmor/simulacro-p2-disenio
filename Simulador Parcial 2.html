@@ -76,6 +76,13 @@ button.opt:hover:not(:disabled){border-color:var(--ac)}
 pre{background:#060F1A;border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto;font:13px/1.55 ui-monospace,monospace;color:#94E5A1;margin:0 0 12px}
 .hint{background:#0C1A2E;border:1px solid #3B82F6;border-radius:8px;padding:12px 14px;color:#BFDBFE;margin-top:6px;font-size:14px}
 .hint .f{display:block;color:var(--mut);font-size:12px;margin-top:6px}
+.diagram{background:#F8FAFC;border-radius:9px;padding:12px;margin:10px 0 14px;overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:760px;height:auto;max-height:560px}
+.diagram-note{font-size:12px;color:#64748B;margin-top:6px}
+.dev-question{margin:14px 0}
+.dev-question>label{display:block;color:var(--hi);font-size:13px;font-weight:600;margin-bottom:6px}
+.dev-question textarea{width:100%;min-height:120px;background:var(--inset);border:1px solid #1E4D6B;border-radius:8px;color:#E2E8F0;font:13px ui-monospace,monospace;padding:12px;resize:vertical}
+.model-answer{margin-top:12px}
 .verdict{font-weight:700;margin-top:10px}
 .big{font:800 56px/1.1 ui-monospace,monospace}
 .stats{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin:12px 0}
@@ -410,10 +417,79 @@ const BANK=[
 {id:'Z14',t:'rel',s:'N',q:'Según el apunte, ¿cuándo está terminada una versión?',o:['Cuando los usuarios pueden usarla.','Cuando el código funciona.','Cuando se aprueba el plan.','Cuando pasa la prueba de unidad.'],a:[0],e:'Por eso el deployment incluye capacitar a los usuarios y comunicar la nota de release.',f:'U6.3 · Diseñar, probar, desplegar (diap. 21)'}
 ];
 
+/* ---------- Ejercicios de desarrollo con diagramas ---------- */
+const DEV=[{id:'DIA01',t:'dao',s:'N',k:'dev',diagram:'dao',q:'Una tienda necesita consultar y guardar productos tanto en una base SQL como en una implementación en memoria para pruebas.',p:[
+'Responsabilidad de GestorProducto, IProductoDAO, ProductoDAOSQL, ProductoDAOMemoria y DAOFactory. Justificá por qué el gestor depende de la interfaz.',
+'Explicá las relaciones de implementación, dependencia y creación. ¿Qué ocurre si GestorProducto construye directamente ProductoDAOSQL?',
+'Indicá qué principios SOLID favorece el diseño y cómo incorporarías ProductoDAOMongo sin modificar la lógica de negocio.',
+'Implementá las operaciones principales respetando las relaciones del diagrama, usando el formato de pseudocódigo de la cátedra.'
+],m:[
+'GestorProducto coordina el caso de uso y conoce el contrato IProductoDAO. La interfaz declara buscarPorId y guardar. ProductoDAOSQL persiste en SQL y ProductoDAOMemoria usa memoria, ambas con el mismo contrato. DAOFactory centraliza la creación según TipoDAO. Producto es la entidad de dominio.',
+'Las clases concretas realizan IProductoDAO; GestorProducto depende de la interfaz y la Factory depende de las implementaciones porque las crea. Si el gestor construyera ProductoDAOSQL quedaría acoplado a SQL, sería más difícil probarlo y cambiar de motor, y se violaría DIP.',
+'Se favorecen DIP, SRP y OCP. Se crea ProductoDAOMongo implementando IProductoDAO y se agrega su caso de creación en DAOFactory; GestorProducto permanece igual.',
+'Clase IProductoDAO\n    Métodos:\n        buscarPorId(id)\n            devolver el producto cuyo identificador sea id\n        FinMetodo\n        guardar(producto)\n            persistir producto\n        FinMetodo\nFinClase\n\nClase GestorProducto\n    Atributos:\n        dao: IProductoDAO\n    Métodos:\n        obtenerProducto(id)\n            producto <- dao.buscarPorId(id)\n            devolver producto\n        FinMetodo\nFinClase\n\nClase ProductoDAOSQL implementa IProductoDAO\n    Métodos:\n        buscarPorId(id)\n            consultar la base SQL\n            devolver la entidad Producto\n        FinMetodo\n        guardar(producto)\n            guardar los datos en SQL\n        FinMetodo\nFinClase'
+]},
+{id:'DIA02',t:'gof',s:'N',k:'dev',diagram:'factory',q:'Una plataforma exporta documentos PDF y HTML y debe incorporar formatos sin que el cliente conozca clases concretas.',p:[
+'Describí la responsabilidad de GeneradorDocumento, sus generadores concretos, Documento y los documentos concretos. ¿Qué operación queda diferida?',
+'Justificá herencia, implementación y dependencia. ¿Qué ventaja ofrece que exportar use crearDocumento?',
+'Para agregar DocumentoCSV, indicá qué clases crearías o modificarías y relacioná la solución con OCP. Señalá una desventaja.',
+'Implementá exportar y la creación de un documento concreto en pseudocódigo con el formato de la cátedra.'
+],m:[
+'GeneradorDocumento define el algoritmo exportar y declara crearDocumento como Factory Method. GeneradorPDF y GeneradorHTML concretan la creación. Documento es el producto abstracto y DocumentoPDF y DocumentoHTML implementan generar.',
+'La herencia especializa el generador; la realización indica que cada documento cumple Documento; las dependencias muestran qué producto construye cada generador. exportar pide crearDocumento y luego generar, por lo que el algoritmo es común y la decisión queda polimórfica.',
+'Se agregan DocumentoCSV implementando Documento y GeneradorCSV heredando de GeneradorDocumento. No se toca el cliente ni el algoritmo existente, favoreciendo OCP. La desventaja es aumentar clases e indirección.',
+'Clase Documento\n    Métodos:\n        generar()\n            producir el contenido del documento\n        FinMetodo\nFinClase\n\nClase GeneradorDocumento\n    Métodos:\n        crearDocumento()\n            devolver un Documento concreto\n        FinMetodo\n        exportar()\n            documento <- crearDocumento()\n            documento.generar()\n        FinMetodo\nFinClase\n\nClase GeneradorPDF hereda de GeneradorDocumento\n    Métodos:\n        crearDocumento()\n            devolver un DocumentoPDF\n        FinMetodo\nFinClase'
+]},
+{id:'DIA03',t:'gof',s:'N',k:'dev',diagram:'observer',q:'Una tienda avisa por correo y SMS cada vez que cambia el estado de un pedido, sin que el pedido conozca los detalles de cada canal.',p:[
+'Explicá las responsabilidades de PedidoObservable, Observador, NotificadorEmail y NotificadorSMS. ¿Por qué la relación es una agregación 0..*?',
+'Describí el flujo de suscribir, cambiarEstado, notificar y desuscribir. ¿Qué problema habría con llamadas directas a cada canal?',
+'Justificá la implementación de Observador y relacioná el diseño con bajo acoplamiento, SRP y OCP. ¿Cómo agregarías una notificación móvil?',
+'Implementá el cambio de estado, la notificación a todos los observadores y un observador concreto en pseudocódigo.'
+],m:[
+'PedidoObservable mantiene el estado y la lista, y notifica. Observador define actualizar. NotificadorEmail y NotificadorSMS concretan cada canal. La agregación 0..* indica que puede haber ninguno, uno o muchos observadores independientes del pedido.',
+'El cliente suscribe; cambiarEstado actualiza y llama a notificar; notificar recorre la lista y llama actualizar; desuscribir quita uno. Las llamadas directas acoplarían el pedido a clases concretas y mezclarían estado con comunicación.',
+'La realización permite sustituir observadores. Se favorecen bajo acoplamiento, SRP y OCP: un canal nuevo es una clase nueva. Para móvil se crea NotificadorPush implementando Observador y se suscribe sin cambiar PedidoObservable.',
+'Clase Observador\n    Métodos:\n        actualizar(pedido)\n            reaccionar al cambio de estado\n        FinMetodo\nFinClase\n\nClase PedidoObservable\n    Atributos:\n        observadores: Lista de Observador\n        estado: EstadoPedido\n    Métodos:\n        suscribir(observador)\n            agregar observador a observadores\n        FinMetodo\n        cambiarEstado(nuevoEstado)\n            estado <- nuevoEstado\n            para cada observador en observadores\n                observador.actualizar(this)\n            FinPara\n        FinMetodo\nFinClase'
+]},
+{id:'DIA04',t:'ss',s:'N',k:'dev',diagram:'state',q:'Un pedido atraviesa los estados recibido, en preparación, listo, entregado o cancelado. Cada operación cambia según el estado actual.',p:[
+'Explicá la responsabilidad de Pedido y de cada EstadoPedido concreto. ¿Por qué Pedido mantiene una referencia a un único estado?',
+'Describí la implementación y la delegación de avanzarEstado y cancelar. Compará con una clase llena de if/else.',
+'Indicá cómo agregarías EnCamino y qué principio SOLID se favorece. Mencioná una desventaja de State.',
+'Implementá Pedido y dos estados respetando la delegación y las transiciones del diagrama en pseudocódigo.'
+],m:[
+'Pedido es el contexto: conserva el estado actual y delega. EstadoPedido define el contrato. Cada estado concreto conoce las transiciones válidas. La multiplicidad 1 indica un estado actual por pedido.',
+'Los concretos realizan EstadoPedido. Pedido llama estado.avanzarEstado(this) o estado.cancelar(this). Con if/else las reglas quedan dispersas y cada estado nuevo obliga a modificar muchos métodos; State concentra cada comportamiento.',
+'Se crea PedidoEnCamino implementando EstadoPedido y se ajusta la transición de PedidoListo. Favorece OCP y SRP. Como desventaja, aumenta clases y puede ser excesivo con pocas reglas.',
+'Clase Pedido\n    Atributos:\n        estado: EstadoPedido\n    Métodos:\n        avanzarEstado()\n            estado.avanzarEstado(this)\n        FinMetodo\n        cancelar()\n            estado.cancelar(this)\n        FinMetodo\n        setEstado(nuevoEstado)\n            estado <- nuevoEstado\n        FinMetodo\nFinClase\n\nClase PedidoRecibido implementa EstadoPedido\n    Métodos:\n        avanzarEstado(pedido)\n            pedido.setEstado(new PedidoEnPreparacion)\n        FinMetodo\n        cancelar(pedido)\n            pedido.setEstado(new PedidoCancelado)\n        FinMetodo\nFinClase\n\nClase PedidoEnPreparacion implementa EstadoPedido\n    Métodos:\n        avanzarEstado(pedido)\n            pedido.setEstado(new PedidoListo)\n        FinMetodo\n        cancelar(pedido)\n            pedido.setEstado(new PedidoCancelado)\n        FinMetodo\nFinClase'
+]},
+{id:'DIA05',t:'gof',s:'N',k:'dev',diagram:'strategy',q:'Una tienda ofrece envío terrestre, aéreo o retiro en sucursal. La tarifa puede cambiar durante la ejecución sin modificar CalculadoraEnvio.',p:[
+'Explicá las responsabilidades de CalculadoraEnvio, EstrategiaEnvio y cada estrategia concreta. ¿Por qué la relación es asociación y no herencia?',
+'Describí qué ocurre al cambiar la estrategia y qué problema se evita frente a un switch. Relacioná la respuesta con OCP y DIP.',
+'Incorporá EnvioExpress: indicá qué contrato cumple y qué parte se modifica. Mencioná una desventaja de Strategy.',
+'Implementá setEstrategia y calcular, además de una estrategia concreta, en pseudocódigo con el formato de la cátedra.'
+],m:[
+'CalculadoraEnvio es el contexto: conserva una estrategia y delega calcular. EstrategiaEnvio es el contrato. Las clases concretas encapsulan algoritmos alternativos. La calculadora recibe una estrategia y puede reemplazarla; no es una especialización.',
+'setEstrategia reemplaza la referencia y calcular delega en el algoritmo nuevo. Se evita un switch que obligue a editar la calculadora. Extender con clases favorece OCP y depender de la interfaz favorece DIP.',
+'Se crea EnvioExpress implementando EstrategiaEnvio y se define calcularCosto. No se modifica CalculadoraEnvio: el cliente inyecta la estrategia. La desventaja es aumentar objetos y exigir seleccionar la estrategia adecuada.',
+'Clase EstrategiaEnvio\n    Métodos:\n        calcularCosto(pedido)\n            devolver costo según la estrategia\n        FinMetodo\nFinClase\n\nClase CalculadoraEnvio\n    Atributos:\n        estrategia: EstrategiaEnvio\n    Métodos:\n        setEstrategia(nuevaEstrategia)\n            estrategia <- nuevaEstrategia\n        FinMetodo\n        calcular(pedido)\n            devolver estrategia.calcularCosto(pedido)\n        FinMetodo\nFinClase\n\nClase EnvioTerrestre implementa EstrategiaEnvio\n    Métodos:\n        calcularCosto(pedido)\n            costo <- calcular según peso y distancia\n            devolver costo\n        FinMetodo\nFinClase'
+]}];
+BANK.push(...DEV);
+
 /* ---------- Motor ---------- */
-const KEY='p2mc.v1',SESSION='p2mc.session.v1',PASS=60,MIN_PER_Q=1.5;
+const KEY='p2mc.v1',SESSION='p2mc.session.v1',PASS=60,EXAM_MINUTES=50;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function diagramHTML(kind){
+  const box=(x,y,w,h,title,lines)=>`<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="#FFF" stroke="#24527A" stroke-width="2"/><rect x="${x}" y="${y}" width="${w}" height="28" rx="7" fill="#DCEBFA"/><text x="${x+w/2}" y="${y+19}" text-anchor="middle" font-size="13" font-weight="700" fill="#12304A">${title}</text>${lines.map((v,i)=>`<text x="${x+8}" y="${y+48+i*16}" font-size="11" fill="#334155">${v}</text>`).join('')}</g>`;
+  const arrow=(x1,y1,x2,y2,dash='')=>`<path d="M${x1} ${y1} L${x2} ${y2}" stroke="#24527A" stroke-width="2" fill="none" marker-end="url(#arr-${kind})"${dash?' stroke-dasharray="7 5"':''}/>`;
+  let c='';
+  if(kind==='dao')c=box(25,35,235,105,'GestorProducto',['- dao: IProductoDAO','+ obtenerProducto(id)'])+box(330,195,245,88,'IProductoDAO',['+ buscarPorId(id)','+ guardar(producto)'])+box(20,380,235,88,'ProductoDAOSQL',['+ buscarPorId(id)','+ guardar(producto)'])+box(315,380,235,88,'ProductoDAOMemoria',['+ buscarPorId(id)','+ guardar(producto)'])+box(650,35,220,88,'DAOFactory',['+ crearProductoDAO(tipo)'])+arrow(145,140,430,195,'1')+arrow(135,380,405,283)+arrow(430,380,490,283)+arrow(755,123,550,195,'')+`<text x="690" y="175" font-size="11" fill="#334155">crea</text>`;
+  if(kind==='factory')c=box(25,35,260,92,'GeneradorDocumento',['+ crearDocumento() abstracto','+ exportar()'])+box(330,35,245,76,'GeneradorPDF',['+ crearDocumento()'])+box(620,35,245,76,'GeneradorHTML',['+ crearDocumento()'])+box(300,215,260,76,'Documento',['+ generar()'])+box(90,390,220,76,'DocumentoPDF',['+ generar()'])+box(590,390,220,76,'DocumentoHTML',['+ generar()'])+arrow(155,127,155,35)+arrow(450,111,200,127)+arrow(742,111,200,127)+arrow(200,127,400,215,'')+arrow(200,127,200,390,'')+arrow(680,111,480,215,'');
+  if(kind==='observer')c=box(300,35,275,116,'PedidoObservable',['- observadores: Lista','- estado: EstadoPedido','+ suscribir / desuscribir','+ cambiarEstado / notificar'])+box(300,230,275,76,'Observador',['+ actualizar(pedido)'])+box(65,410,235,76,'NotificadorEmail',['+ actualizar(pedido)'])+box(620,410,235,76,'NotificadorSMS',['+ actualizar(pedido)'])+arrow(437,151,437,230)+arrow(180,410,390,306)+arrow(735,410,490,306);
+  if(kind==='state')c=box(325,25,245,105,'Pedido',['- estado: EstadoPedido','+ avanzarEstado()','+ cancelar()','+ setEstado(estado)'])+box(325,200,245,76,'EstadoPedido',['+ avanzarEstado(pedido)','+ cancelar(pedido)'])+box(25,395,190,76,'PedidoRecibido',['+ avanzarEstado','+ cancelar'])+box(245,395,190,76,'PedidoEnPreparacion',['+ avanzarEstado','+ cancelar'])+box(465,395,190,76,'PedidoListo',['+ avanzarEstado','+ cancelar'])+box(685,395,190,76,'PedidoEntregado',['+ avanzarEstado','+ cancelar'])+arrow(447,130,447,200)+arrow(120,395,400,276)+arrow(340,395,430,276)+arrow(560,395,470,276)+arrow(780,395,510,276);
+  if(kind==='strategy')c=box(325,35,245,105,'CalculadoraEnvio',['- estrategia: EstrategiaEnvio','+ setEstrategia(e)','+ calcular(pedido)'])+box(325,225,245,76,'EstrategiaEnvio',['+ calcularCosto(pedido)'])+box(35,410,210,76,'EnvioTerrestre',['+ calcularCosto(pedido)'])+box(275,410,210,76,'EnvioAereo',['+ calcularCosto(pedido)'])+box(515,410,210,76,'RetiroSucursal',['+ calcularCosto(pedido)'])+arrow(447,140,447,225)+arrow(140,410,410,301)+arrow(380,410,447,301)+arrow(620,410,485,301);
+  return `<div class="diagram"><svg viewBox="0 0 900 510" role="img" aria-label="Diagrama UML ${kind}"><defs><marker id="arr-${kind}" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10" fill="none" stroke="#24527A" stroke-width="1.5"/></marker></defs>${c}</svg></div><div class="diagram-note">Diagrama de clases UML. Desplazá horizontalmente si la pantalla es angosta.</div>`;
+}
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const byId=Object.fromEntries(BANK.map(q=>[q.id,q]));
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
@@ -423,6 +499,7 @@ let cfg={mode:'exam',n:18,timed:true,origOnly:false,topics:Object.keys(TOPIC)};
 let S=null,tmr=null;
 
 function scoreQ(q,ans){
+  if(q.k==='dev')return Array.isArray(ans)&&ans.some(v=>String(v||'').trim().length>0)?1:0;
   const chosen=new Set(ans||[]);if(!chosen.size)return 0;
   const ok=new Set(q.a);let r=0,w=0;chosen.forEach(v=>ok.has(v)?r++:w++);
   return Math.max(0,Math.min(1,(r-w)/ok.size));
@@ -437,11 +514,13 @@ function pick(c){
   Object.keys(groups).forEach(t=>groups[t]=leastSeen(groups[t]));
   const order=shuffle(Object.keys(groups));
   while(out.length<n){let added=false;for(const t of order){if(out.length>=n)break;if(groups[t].length){out.push(groups[t].shift());added=true}}if(!added)break}
+  const diagrams=leastSeen(pool.filter(q=>q.k==='dev'));
+  if(c.mode==='exam'&&diagrams.length&&n&& !out.some(q=>q.k==='dev'))out[Math.floor(Math.random()*out.length)]=diagrams[0];
   return shuffle(out);
 }
 function begin(list,mode,timed){
   if(!list.length)return;
-  S={ids:list.map(q=>q.id),ord:list.map(q=>q.k?q.o.map((_,i)=>i):shuffle(q.o.map((_,i)=>i))),ans:list.map(()=>[]),checked:list.map(()=>false),i:0,mode,deadline:timed?Date.now()+Math.round(list.length*MIN_PER_Q*60)*1000:null,done:false};
+  S={ids:list.map(q=>q.id),ord:list.map(q=>q.k==='dev'?[]:(q.k?q.o.map((_,i)=>i):shuffle(q.o.map((_,i)=>i)))),ans:list.map(()=>[]),checked:list.map(()=>false),i:0,mode,deadline:timed?Date.now()+EXAM_MINUTES*60*1000:null,done:false};
   persist();runTimer();render();
 }
 function persist(){if(S&&!S.done)save(SESSION,S);else{try{localStorage.removeItem(SESSION)}catch{}}}
@@ -459,17 +538,24 @@ function tick(){
   if(left<=0)finish(true);
 }
 const qOf=i=>byId[S.ids[i]];
-const answered=i=>S.ans[i].length>0;
+const answered=i=>byId[S.ids[i]].k==='dev'?Array.isArray(S.ans[i])&&S.ans[i].some(v=>String(v||'').trim().length>0):S.ans[i].length>0;
 function record(q,score){
   store.seen[q.id]=(store.seen[q.id]||0)+1;
   if(score>=1)delete store.wrong[q.id];else store.wrong[q.id]=1;
   save(KEY,store);
 }
 function choose(j){
-  if(S.done||S.checked[S.i])return;
+  if(S.done||S.checked[S.i]||qOf(S.i).k==='dev')return;
   const q=qOf(S.i),a=S.ans[S.i];
   S.ans[S.i]=q.m?(a.includes(j)?a.filter(v=>v!==j):[...a,j]):[j];
   persist();render(j);
+}
+function saveDevAnswer(value,index){
+  if(S.done||S.checked[index])return;
+  const answers=Array.isArray(S.ans[index])?S.ans[index]:[];
+  answers[+value.dataset.dev]=value.value;
+  S.ans[index]=answers;
+  persist();
 }
 function verify(){
   if(!answered(S.i)||S.checked[S.i])return;
@@ -499,7 +585,7 @@ function optHTML(q,i,j,pos,reveal){
     if(ok)cls+=' right';else if(sel)cls+=' wrong';
     why=ok?(sel?'Correcta · la marcaste':'Correcta · no la marcaste'):(sel?'Incorrecta · la marcaste':'');
   }else if(sel)cls+=' sel';
-  const mark=`<span class="mk ${q.m?'box':'radio'}${sel?' on':''}">${sel?(q.m?'✓':'●'):''}</span>`;
+  const mark=`<span class="mk ${q.m?'box':'radio'}${sel?' on':''}"></span>`;
   const body=`${mark}<b>${String.fromCharCode(97+pos)}.</b><span class="txt">${esc(q.o[j])}${why?`<span class="why">${why}</span>`:''}</span>`;
   return reveal?`<div class="${cls}">${body}</div>`:`<button class="${cls}" data-opt="${j}" role="${q.m?'checkbox':'radio'}" aria-checked="${sel}">${body}</button>`;
 }
@@ -507,6 +593,16 @@ function stemHTML(q,tag){
   return `<${tag}>${esc(q.q)}</${tag}>`+(q.l?`<ul class="stmts">${q.l.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:'')+(q.c?`<pre>${esc(q.c)}</pre>`:'');
 }
 function hintHTML(q){return `<div class="hint"><b>Fundamento:</b> ${esc(q.e)}<span class="f">Fuente: ${esc(q.f)}</span></div>`}
+function devHTML(q,i,reveal){
+  let h=diagramHTML(q.diagram);
+  q.p.forEach((prompt,j)=>{
+    const value=Array.isArray(S.ans[i])?S.ans[i][j]||'':'';
+    h+=`<div class="dev-question"><label for="dev-${i}-${j}">${j+1}. ${esc(prompt)}</label><textarea id="dev-${i}-${j}" data-dev="${j}" rows="${j===q.p.length-1?16:6}" ${reveal?'readonly':''}>${esc(value)}</textarea>`;
+    if(reveal)h+=`<div class="hint model-answer"><b>Respuesta modelo</b><pre>${esc(q.m[j])}</pre></div>`;
+    h+='</div>';
+  });
+  return h;
+}
 function render(focusOpt){
   const i=S.i,q=qOf(i),n=S.ids.length,prac=S.mode==='practice',rev=prac&&S.checked[i];
   const count=prac?S.checked.filter(Boolean).length:S.ids.filter((_,k)=>answered(k)).length;
@@ -516,9 +612,14 @@ function render(focusOpt){
   h+=S.ids.map((id,k)=>{let c=k===i?'cur ':'';if(prac&&S.checked[k])c+=scoreQ(byId[id],S.ans[k])>=1?'okq':'badq';else if(answered(k))c+='done';return `<button class="${c}" data-go="${k}" aria-label="Ir a la pregunta ${k+1}">${k+1}</button>`}).join('');
   h+=`</div>${fold?'</details>':''}<div class="card"><span class="tag">${esc(TOPIC[q.t])}</span>${q.s==='P'?'<span class="tag src">Parcial modelo</span>':''}`;
   h+=stemHTML(q,'h2');
-  h+=q.m?'<p class="muted">Seleccione todas las opciones correctas.</p>':'<p class="muted">Seleccione una opción.</p>';
-  h+=`<div role="${q.m?'group':'radiogroup'}">`+S.ord[i].map((j,pos)=>optHTML(q,i,j,pos,rev)).join('')+'</div>';
-  if(rev){const sc=scoreQ(q,S.ans[i]);h+=`<p class="verdict" style="color:${sc>=1?'#34D399':sc>0?'var(--warn)':'var(--bad)'}">${sc>=1?'Correcta':sc>0?`Parcialmente correcta (${Math.round(sc*100)} %)`:'Incorrecta'}</p>`+hintHTML(q)}
+  if(q.k==='dev'){
+    h+=`<p class="muted">Complete todos los incisos. Se considera respondido cuando hay contenido escrito; la corrección es para autoevaluación.</p>`;
+    h+=devHTML(q,i,rev);
+  }else{
+    h+=q.m?'<p class="muted">Seleccione todas las opciones correctas.</p>':'<p class="muted">Seleccione una opción.</p>';
+    h+=`<div role="${q.m?'group':'radiogroup'}">`+S.ord[i].map((j,pos)=>optHTML(q,i,j,pos,rev)).join('')+'</div>';
+  }
+  if(rev){const sc=scoreQ(q,S.ans[i]);h+=`<p class="verdict" style="color:${sc>=1?'#34D399':sc>0?'var(--warn)':'var(--bad)'}">${sc>=1?'Correcta':sc>0?`Parcialmente correcta (${Math.round(sc*100)} %)`:'Incorrecta'}</p>`+(q.k==='dev'?'':hintHTML(q))}
   h+=`</div><div class="row"><button class="b s" data-act="prev" ${i?'':'disabled'}>Anterior</button><span class="muted">${count}/${n} ${prac?'verificadas':'respondidas'}</span>`;
   if(prac&&!rev)h+=`<button class="b" data-act="verify" ${answered(i)?'':'disabled'}>Verificar</button>`;
   else if(prac){const k=nextUnchecked();h+=k>=0?`<button class="b" data-act="nextun">Siguiente</button>`:`<button class="b" data-act="finish">Ver resultados</button>`}
@@ -546,7 +647,7 @@ function results(){
   h+=`<div class="row" style="margin-bottom:10px"><h3 style="margin:0">Revisión</h3><div class="seg"><button data-filter="bad" aria-pressed="${S.filter==='bad'}">Para revisar (${failed.length})</button><button data-filter="all" aria-pressed="${S.filter==='all'}">Todas (${rows.length})</button></div></div>`;
   const show=S.filter==='bad'?failed:rows;
   if(!show.length)h+='<div class="card muted">No hay preguntas para revisar.</div>';
-  h+=show.map(r=>`<div class="card"><div class="row"><span><span class="tag">${esc(TOPIC[r.q.t])}</span><span class="tag src">${SRC[r.q.s]}</span></span><b style="color:${r.sc>=1?'var(--ok)':r.sc>0?'var(--warn)':'var(--bad)'}">${r.blank?'Sin responder':Math.round(r.sc*100)+' %'}</b></div>${stemHTML({...r.q,q:(r.i+1)+'. '+r.q.q},'h2')}${S.ord[r.i].map((j,pos)=>optHTML(r.q,r.i,j,pos,true)).join('')}${hintHTML(r.q)}</div>`).join('');
+  h+=show.map(r=>`<div class="card"><div class="row"><span><span class="tag">${esc(TOPIC[r.q.t])}</span><span class="tag src">${SRC[r.q.s]}</span></span><b style="color:${r.sc>=1?'var(--ok)':r.sc>0?'var(--warn)':'var(--bad)'}">${r.blank?'Sin responder':Math.round(r.sc*100)+' %'}</b></div>${stemHTML({...r.q,q:(r.i+1)+'. '+r.q.q},'h2')}${r.q.k==='dev'?devHTML(r.q,r.i,true):S.ord[r.i].map((j,pos)=>optHTML(r.q,r.i,j,pos,true)).join('')}${r.q.k==='dev'?'':hintHTML(r.q)}</div>`).join('');
   $('#app').innerHTML=h;
 }
 function home(){
@@ -557,7 +658,7 @@ function home(){
   if(resume&&resume.ids&&resume.ids.every(id=>byId[id]))h+=`<div class="row" style="margin-top:10px"><span class="warn">Tenés un intento sin terminar (${resume.mode==='exam'?'simulacro':'práctica'}, ${resume.ids.length} preguntas).</span><span class="row"><button class="b small" data-act="resume">Continuar</button><button class="b s small" data-act="discard">Descartar</button></span></div>`;
   h+=`</div><div class="card"><div class="field"><span class="lab">Modo</span><div class="seg"><button data-mode="exam" aria-pressed="${cfg.mode==='exam'}">Simulacro</button><button data-mode="practice" aria-pressed="${cfg.mode==='practice'}">Práctica</button></div><p class="muted" style="margin-top:6px">${cfg.mode==='exam'?'Con tiempo y corrección al final.':'Sin tiempo: corrige y explica cada pregunta al responderla.'}</p></div>`;
   h+=`<div class="field"><span class="lab">Cantidad de preguntas</span><div class="seg">${[[10,'10'],[18,'18'],[30,'30'],[50,'50'],[9999,'Todas']].map(([v,l])=>`<button data-n="${v}" aria-pressed="${cfg.n===v}">${l}</button>`).join('')}</div></div>`;
-  if(cfg.mode==='exam')h+=`<div class="field"><label class="check"><input type="checkbox" id="timed" ${cfg.timed?'checked':''}> Con límite de tiempo (${Math.round(count*MIN_PER_Q)} min para ${count} preguntas)</label></div>`;
+  if(cfg.mode==='exam')h+=`<div class="field"><label class="check"><input type="checkbox" id="timed" ${cfg.timed?'checked':''}> Con límite de tiempo (${EXAM_MINUTES} minutos)</label></div>`;
   h+=`<div class="field"><label class="check"><input type="checkbox" id="orig" ${cfg.origOnly?'checked':''}> Solo preguntas del parcial modelo</label></div></div>`;
   h+=`<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Temas</h3><span class="row"><button class="link" data-all="1">Todos</button><button class="link" data-all="0">Ninguno</button></span></div>`;
   UNITS.forEach((u,ui)=>{
@@ -596,8 +697,12 @@ document.addEventListener('click',ev=>{
   }
 });
 document.addEventListener('change',ev=>{
+  if(ev.target.dataset.dev!==undefined)return saveDevAnswer(ev.target,S.i);
   if(ev.target.id==='timed'){cfg.timed=ev.target.checked;home()}
   if(ev.target.id==='orig'){cfg.origOnly=ev.target.checked;home()}
+});
+document.addEventListener('input',ev=>{
+  if(ev.target.dataset.dev!==undefined)saveDevAnswer(ev.target,S.i);
 });
 $('#exit').addEventListener('click',()=>{
   if(!S||S.done)return;
